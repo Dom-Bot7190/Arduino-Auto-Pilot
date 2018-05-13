@@ -128,9 +128,30 @@ void loop(void)
 
   //Create error
   int rollError = orientation.roll - rollPoint;
-  int pitchError = orintation.pitch - pitchPoint;
+  int pitchError = orientation.pitch - pitchPoint;
 
   // PID loops
+  // Calculate Proportional
   int rollPropotional = rollP * rollError;
   int pitchProportional = pitchP * pitchError;
+
+  // Calculate Integral
+  static float rollIntegral = 0;
+  rollIntegral += rollError * rollI;
+  if(rollIntegral > 1000) rollIntegral = 1000;
+  if(rollIntegral < -1000) rollIntegral = -1000;
+
+  static float pitchIntegral = 0;
+  pitchIntegral += pitchError * pitchI;
+  if(pitchIntegral > 1000) pitchIntegral = 1000;
+  if(pitchIntegral < -1000) pitchIntegral = -1000;
+
+  // Calculate Derivative
+  static float previous_roll_error = 0;
+  int rollDerivative = (rollError - previous_roll_error) * rollD;
+  previous_roll_error = rollError;
+
+  static float previous_pitch_error = 0;
+  int pitchDerivative = (pitchError - previous_pitch_error) * pitchD;
+  previous_pitch_error = pitchError;
 }
