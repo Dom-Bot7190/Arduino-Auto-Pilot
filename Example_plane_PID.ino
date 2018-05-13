@@ -15,13 +15,19 @@ Adafruit_BMP085_Unified       bmp   = Adafruit_BMP085_Unified(18001);
 float seaLevelPressure = SENSORS_PRESSURE_SEALEVELHPA;
 
 // Set PID gain for both axis
-int rollP;
-int rollI;
-int rollD;
+int rollP = 0;
+int rollI = 0;
+int rollD = 0;
 
-int pitchP;
-int pitchI;
-int pitchD;
+int pitchP = 0;
+int pitchI = 0;
+int pitchD = 0;
+
+// Set the set point and error for both axis
+int rollPoint;
+int pitchPoint;
+int pitchError;
+
 /**************************************************************************/
 /*!
     @brief  Initialises all the sensors used by this example
@@ -119,4 +125,12 @@ void loop(void)
   
   Serial.println(F(""));
   delay(1000);
+
+  //Create error
+  int rollError = orientation.roll - rollPoint;
+  int pitchError = orintation.pitch - pitchPoint;
+
+  // PID loops
+  int rollPropotional = rollP * rollError;
+  int pitchProportional = pitchP * pitchError;
 }
