@@ -4,7 +4,11 @@
 #include <Adafruit_BMP085_U.h>
 #include <Adafruit_L3GD20_U.h>
 #include <Adafruit_10DOF.h>
-
+#include <Servo.h>
+Servo Servo1;
+Servo Servo2;
+int Servo1Pos = 0;
+int Servo2Pos = 0;
 /* Assign a unique ID to the sensors */
 Adafruit_10DOF                dof   = Adafruit_10DOF();
 Adafruit_LSM303_Accel_Unified accel = Adafruit_LSM303_Accel_Unified(30301);
@@ -15,19 +19,21 @@ Adafruit_BMP085_Unified       bmp   = Adafruit_BMP085_Unified(18001);
 float seaLevelPressure = SENSORS_PRESSURE_SEALEVELHPA;
 
 // Set PID gain for both axis
-int rollP = 0;
+int rollP = 1;
 int rollI = 0;
 int rollD = 0;
 
-int pitchP = 0;
+int pitchP = 1;
 int pitchI = 0;
 int pitchD = 0;
 
 // Set the set point and error for both axis
-int rollPoint;
-int pitchPoint;
+int rollPoint = 0;
+int pitchPoint = 0;
 int pitchError;
 
+int pitchVal;
+int rollVal;
 /**************************************************************************/
 /*!
     @brief  Initialises all the sensors used by this example
@@ -57,16 +63,19 @@ void initSensors()
 
 /**************************************************************************/
 /*!
-
 */
 /**************************************************************************/
 void setup(void)
 {
+  Servo1.attach(9);
+  Servo2.attach(10);
+  delay(50);
   Serial.begin(115200);
   Serial.println(F("Adafruit 10 DOF PID test")); Serial.println("");
   
   /* Initialise the sensors */
   initSensors();
+  
 }
 
 /**************************************************************************/
@@ -87,10 +96,10 @@ void loop(void)
   {
     /* 'orientation' should have valid .roll and .pitch fields */
     Serial.print(F("Roll: "));
-    Serial.print(orientation.roll);
+    Serial.print(rollVal);
     Serial.print(F("; "));
     Serial.print(F("Pitch: "));
-    Serial.print(orientation.pitch);
+    Serial.print(pitchVal);
     Serial.print(F("; "));
   }
   
@@ -108,23 +117,15 @@ void loop(void)
   bmp.getEvent(&bmp_event);
   if (bmp_event.pressure)
   {
-    /* Get ambient temperature in C */
-    float temperature;
-    bmp.getTemperature(&temperature);
     /* Convert atmospheric pressure, SLP and temp to altitude    */
     Serial.print(F("Alt: "));
     Serial.print(bmp.pressureToAltitude(seaLevelPressure,
-                                        bmp_event.pressure,
-                                        temperature)); 
+                                        bmp_event.pressure)); 
     Serial.print(F(" m; "));
-    /* Display the temperature */
-    Serial.print(F("Temp: "));
-    Serial.print(temperature);
-    Serial.print(F(" C"));
+
   }
   
   Serial.println(F(""));
-  delay(1000);
 
   //Create error
   int rollError = orientation.roll - rollPoint;
@@ -132,8 +133,8 @@ void loop(void)
 
   // PID loops
   // Calculate Proportional
-  int rollPropotional = rollP * rollError;
-  int pitchProportional = pitchP * pitchError;
+ int rollProportional = rollP * rollError;
+ int pitchProportional = pitchP * pitchError;
 
   // Calculate Integral
   static float rollIntegral = 0;
@@ -154,4 +155,13 @@ void loop(void)
   static float previous_pitch_error = 0;
   int pitchDerivative = (pitchError - previous_pitch_error) * pitchD;
   previous_pitch_error = pitchError;
+  
+  pitchVal = (pitchProportional + pitchIntegral + pitchDerivative);
+  rollVal = (rollProportional + pitchIntegral + pitchDerivative);
+
+ // rollVal = map(rollVal, -90, 90, 0, 180);
+ // Servo1.write(rollVal);
+ // pitchVal = map(pitchVal, -90, 90, 0, 180);
+ // Servo2.write(pitchVal);
+
 }
