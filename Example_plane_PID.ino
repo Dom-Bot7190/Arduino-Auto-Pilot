@@ -5,8 +5,12 @@
 #include <Adafruit_L3GD20_U.h>
 #include <Adafruit_10DOF.h>
 #include <Servo.h>
+#include <TinyGPS++.h>
+#include <SoftwareSerial.h>
+
 Servo Servo1;
 Servo Servo2;
+
 int Servo1Pos = 0;
 int Servo2Pos = 0;
 /* Assign a unique ID to the sensors */
@@ -19,11 +23,11 @@ Adafruit_BMP085_Unified       bmp   = Adafruit_BMP085_Unified(18001);
 float seaLevelPressure = SENSORS_PRESSURE_SEALEVELHPA;
 
 // Set PID gain for both axis
-int rollP = 1;
+int rollP = 11;
 int rollI = 0;
 int rollD = 0;
 
-int pitchP = 1;
+int pitchP = 11;
 int pitchI = 0;
 int pitchD = 0;
 
@@ -139,13 +143,13 @@ void loop(void)
   // Calculate Integral
   static float rollIntegral = 0;
   rollIntegral += rollError * rollI;
-  if(rollIntegral > 1000) rollIntegral = 1000;
-  if(rollIntegral < -1000) rollIntegral = -1000;
+  if(rollIntegral > 10000) rollIntegral = 10000;
+  if(rollIntegral < -10000) rollIntegral = -10000;
 
   static float pitchIntegral = 0;
   pitchIntegral += pitchError * pitchI;
-  if(pitchIntegral > 1000) pitchIntegral = 1000;
-  if(pitchIntegral < -1000) pitchIntegral = -1000;
+  if(pitchIntegral > 10000) pitchIntegral = 10000;
+  if(pitchIntegral < -10000) pitchIntegral = -10000;
 
   // Calculate Derivative
   static float previous_roll_error = 0;
@@ -158,10 +162,16 @@ void loop(void)
   
   pitchVal = (pitchProportional + pitchIntegral + pitchDerivative);
   rollVal = (rollProportional + pitchIntegral + pitchDerivative);
+  
+  if(rollVal > 1000) rollVal = 1000;
+  if(rollVal < -1000) rollVal = -1000;
+  if(pitchVal > 1000) pitchVal = 1000;
+  if(pitchVal < -1000) pitchVal = -1000;
 
- // rollVal = map(rollVal, -90, 90, 0, 180);
- // Servo1.write(rollVal);
- // pitchVal = map(pitchVal, -90, 90, 0, 180);
- // Servo2.write(pitchVal);
+ rollVal = map(rollVal, -1000, 1000, 0, 180);
+ Servo1.write(rollVal);
+ pitchVal = map(pitchVal, -1000, 1000, 0, 180);
+ Servo2.write(pitchVal);
 
+ delay(10);
 }
