@@ -23,11 +23,11 @@ Adafruit_BMP085_Unified       bmp   = Adafruit_BMP085_Unified(18001);
 float seaLevelPressure = SENSORS_PRESSURE_SEALEVELHPA;
 
 // Set PID gain for both axis
-int rollP = 11;
+int rollP = 15;
 int rollI = 0;
 int rollD = 0;
 
-int pitchP = 11;
+int pitchP = 15;
 int pitchI = 0;
 int pitchD = 0;
 
@@ -169,9 +169,7 @@ void loop(void)
   if(pitchVal < -1000) pitchVal = -1000;
 
  rollVal = map(rollVal, -1000, 1000, 0, 180);
- Servo1.write(rollVal);
  pitchVal = map(pitchVal, -1000, 1000, 0, 180);
+ Servo1.write(rollVal);
  Servo2.write(pitchVal);
-
- delay(10);
 }
