@@ -1,3 +1,4 @@
+#include <PID_v1.h>
 #include <Wire.h>
 #include <Adafruit_Sensor.h>
 #include <Adafruit_LSM303_U.h>
@@ -5,7 +6,6 @@
 #include <Adafruit_L3GD20_U.h>
 #include <Adafruit_10DOF.h>
 #include <Servo.h>
-#include <TinyGPS++.h>
 #include <SoftwareSerial.h>
 
 /* Assign a unique ID to the sensors */
@@ -17,31 +17,34 @@ Adafruit_BMP085_Unified       bmp   = Adafruit_BMP085_Unified(18001);
 Servo Servo1;
 Servo Servo2;
 
-float Servo1Pos = 0;
-float Servo2Pos = 0;
+int Servo1Pos = 0;
+int Servo2Pos = 0;
 
 /* Update this with the correct SLP for accurate altitude measurements */
 float seaLevelPressure = SENSORS_PRESSURE_SEALEVELHPA;
 
 // Set PID gain for both axis
-float rollP = 10;
-float rollI = 2;
-float rollD = 0;
+double rollP = 10;
+double rollI = 0;
+double rollD = 0;
 
-float pitchP = 10;
-float pitchI = 2;
-float pitchD = 0;
+double pitchP = 10;
+double pitchI = 0;
+double pitchD = 0;
 
-// Set the set point and error for both axis
-float rollPoint = 0;
-float pitchPoint = 5;
-float pitchError;
+// Set the set point
+double rollPoint = 5;
+double pitchPoint = 0;
 
-float pitchVal;
-float rollVal;
+double pitchVal;
+double rollVal;
 
-float rollProportional;
-float pitchProportional;
+double rollAcc;
+double pitchAcc;
+
+//Specify the links and initial tuning parameters
+PID rollPID(&rollAcc, &rollVal, &rollPoint,rollP,rollI,rollD, DIRECT);
+PID pitchPID(&pitchAcc, &pitchVal, &pitchPoint,pitchP,pitchI,pitchD, DIRECT);
 /**************************************************************************/
 /*!
     @brief  Initialises all the sensors used by this example
@@ -81,6 +84,10 @@ void setup(void)
   delay(50);
   Serial.begin(115200);
   Serial.println(F("Adafruit 10 DOF Pitch/Roll/Heading Example")); Serial.println("");
+
+  //turn the PID on
+  rollPID.SetMode(AUTOMATIC);
+  pitchPID.SetMode(AUTOMATIC);
   
   /* Initialise the sensors */
   initSensors();
@@ -110,33 +117,8 @@ void loop(void)
     Serial.print(orientation.pitch);
     Serial.print(F("; "));
 
-    
-  //Create error
-  float rollError = orientation.roll - rollPoint;
-  float pitchError = orientation.pitch - pitchPoint;
-
-  // PID loops
-  // Calculate Proportional
- rollProportional = rollP * rollError;
- pitchProportional = pitchP * pitchError;
-
-  // Calculate Integral
-  static float rollIntegral = 0;
-  rollIntegral += rollError * rollI;
-  if(rollIntegral > 100) rollIntegral = 100;
-  static float pitchIntegral = 0;
-  pitchIntegral += pitchError * pitchI;
-  if(rollIntegral > 100) pitchIntegral = 100;
-  
-  // Calculate Derivative
-  static float previous_roll_error = 0;
-  float rollDerivative = (rollError - previous_roll_error) * rollD;
-  previous_roll_error = rollError;
-
-  static float previous_pitch_error = 0;
-  float pitchDerivative = (pitchError - previous_pitch_error) * pitchD;
-  previous_pitch_error = pitchError;
-
+    rollAcc = orientation.roll;
+    pitchAcc = orientation.pitch;
   }
   
   /* Calculate the heading using the magnetometer */
@@ -170,16 +152,16 @@ void loop(void)
   
   Serial.println(F(""));
 
-  pitchVal = pitchProportional + pitchIntegral + pitchDerivative;
-  rollVal = rollProportional + pitchIntegral + pitchDerivative;
-
+  rollPID.Compute();
+  pitchPID.Compute();
+  
   if(rollVal > 1000) rollVal = 1000;
   if(rollVal < -1000) rollVal = -1000;
   if(pitchVal > 1000) pitchVal = 1000;
   if(pitchVal < -1000) pitchVal = -1000;
 
  rollVal = map(rollVal, -1000, 1000, 0, 180);
- Servo1.write(rollVal);
  pitchVal = map(pitchVal, -1000, 1000, 180, 0);
+ Servo1.write(rollVal);
  Servo2.write(pitchVal);
 }
