@@ -8,36 +8,40 @@
 #include <TinyGPS++.h>
 #include <SoftwareSerial.h>
 
-Servo Servo1;
-Servo Servo2;
-
-int Servo1Pos = 0;
-int Servo2Pos = 0;
 /* Assign a unique ID to the sensors */
 Adafruit_10DOF                dof   = Adafruit_10DOF();
 Adafruit_LSM303_Accel_Unified accel = Adafruit_LSM303_Accel_Unified(30301);
 Adafruit_LSM303_Mag_Unified   mag   = Adafruit_LSM303_Mag_Unified(30302);
 Adafruit_BMP085_Unified       bmp   = Adafruit_BMP085_Unified(18001);
 
+Servo Servo1;
+Servo Servo2;
+
+float Servo1Pos = 0;
+float Servo2Pos = 0;
+
 /* Update this with the correct SLP for accurate altitude measurements */
 float seaLevelPressure = SENSORS_PRESSURE_SEALEVELHPA;
 
 // Set PID gain for both axis
-int rollP = 9;
-int rollI = 0;
-int rollD = 0;
+float rollP = 10;
+float rollI = 2;
+float rollD = 0;
 
-int pitchP = 7;
-int pitchI = 0;
-int pitchD = 0;
+float pitchP = 10;
+float pitchI = 2;
+float pitchD = 0;
 
 // Set the set point and error for both axis
-int rollPoint = 0;
-int pitchPoint = 0;
-int pitchError;
+float rollPoint = 0;
+float pitchPoint = 5;
+float pitchError;
 
-int pitchVal;
-int rollVal;
+float pitchVal;
+float rollVal;
+
+float rollProportional;
+float pitchProportional;
 /**************************************************************************/
 /*!
     @brief  Initialises all the sensors used by this example
@@ -67,6 +71,7 @@ void initSensors()
 
 /**************************************************************************/
 /*!
+
 */
 /**************************************************************************/
 void setup(void)
@@ -75,11 +80,10 @@ void setup(void)
   Servo2.attach(10);
   delay(50);
   Serial.begin(115200);
-  Serial.println(F("Adafruit 10 DOF PID test")); Serial.println("");
+  Serial.println(F("Adafruit 10 DOF Pitch/Roll/Heading Example")); Serial.println("");
   
   /* Initialise the sensors */
   initSensors();
-  
 }
 
 /**************************************************************************/
@@ -100,11 +104,39 @@ void loop(void)
   {
     /* 'orientation' should have valid .roll and .pitch fields */
     Serial.print(F("Roll: "));
-    Serial.print(rollVal);
+    Serial.print(orientation.roll);
     Serial.print(F("; "));
     Serial.print(F("Pitch: "));
-    Serial.print(pitchVal);
+    Serial.print(orientation.pitch);
     Serial.print(F("; "));
+
+    
+  //Create error
+  float rollError = orientation.roll - rollPoint;
+  float pitchError = orientation.pitch - pitchPoint;
+
+  // PID loops
+  // Calculate Proportional
+ rollProportional = rollP * rollError;
+ pitchProportional = pitchP * pitchError;
+
+  // Calculate Integral
+  static float rollIntegral = 0;
+  rollIntegral += rollError * rollI;
+  if(rollIntegral > 100) rollIntegral = 100;
+  static float pitchIntegral = 0;
+  pitchIntegral += pitchError * pitchI;
+  if(rollIntegral > 100) pitchIntegral = 100;
+  
+  // Calculate Derivative
+  static float previous_roll_error = 0;
+  float rollDerivative = (rollError - previous_roll_error) * rollD;
+  previous_roll_error = rollError;
+
+  static float previous_pitch_error = 0;
+  float pitchDerivative = (pitchError - previous_pitch_error) * pitchD;
+  previous_pitch_error = pitchError;
+
   }
   
   /* Calculate the heading using the magnetometer */
@@ -121,48 +153,26 @@ void loop(void)
   bmp.getEvent(&bmp_event);
   if (bmp_event.pressure)
   {
+    /* Get ambient temperature in C */
+    float temperature;
+    bmp.getTemperature(&temperature);
     /* Convert atmospheric pressure, SLP and temp to altitude    */
     Serial.print(F("Alt: "));
     Serial.print(bmp.pressureToAltitude(seaLevelPressure,
-                                        bmp_event.pressure)); 
+                                        bmp_event.pressure,
+                                        temperature)); 
     Serial.print(F(" m; "));
-
+    /* Display the temperature */
+    Serial.print(F("Temp: "));
+    Serial.print(temperature);
+    Serial.print(F(" C"));
   }
   
   Serial.println(F(""));
 
-  //Create error
-  int rollError = orientation.roll - rollPoint;
-  int pitchError = orientation.pitch - pitchPoint;
+  pitchVal = pitchProportional + pitchIntegral + pitchDerivative;
+  rollVal = rollProportional + pitchIntegral + pitchDerivative;
 
-  // PID loops
-  // Calculate Proportional
- int rollProportional = rollP * rollError;
- int pitchProportional = pitchP * pitchError;
-
-  // Calculate Integral
-  static float rollIntegral = 0;
-  rollIntegral += rollError * rollI;
-  if(rollIntegral > 10000) rollIntegral = 10000;
-  if(rollIntegral < -10000) rollIntegral = -10000;
-
-  static float pitchIntegral = 0;
-  pitchIntegral += pitchError * pitchI;
-  if(pitchIntegral > 10000) pitchIntegral = 10000;
-  if(pitchIntegral < -10000) pitchIntegral = -10000;
-
-  // Calculate Derivative
-  static float previous_roll_error = 0;
-  int rollDerivative = (rollError - previous_roll_error) * rollD;
-  previous_roll_error = rollError;
-
-  static float previous_pitch_error = 0;
-  int pitchDerivative = (pitchError - previous_pitch_error) * pitchD;
-  previous_pitch_error = pitchError;
-  
-  pitchVal = (pitchProportional + pitchIntegral + pitchDerivative);
-  rollVal = (rollProportional + pitchIntegral + pitchDerivative);
-  
   if(rollVal > 1000) rollVal = 1000;
   if(rollVal < -1000) rollVal = -1000;
   if(pitchVal > 1000) pitchVal = 1000;
