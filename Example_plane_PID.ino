@@ -86,7 +86,7 @@ void setup(void)
   Servo2.attach(10);
   delay(50);
   Serial.begin(115200);
-  Serial.println(F("Adafruit 10 DOF Pitch/Roll/Heading Example")); Serial.println("");
+  Serial.println(F("your mom gay lol")); Serial.println("");
 
   //turn the PID on
   rollPID.SetMode(AUTOMATIC);
