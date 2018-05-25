@@ -45,6 +45,9 @@ double pitchAcc;
 //Specify the links and initial tuning parameters
 PID rollPID(&rollAcc, &rollVal, &rollPoint,rollP,rollI,rollD, DIRECT);
 PID pitchPID(&pitchAcc, &pitchVal, &pitchPoint,pitchP,pitchI,pitchD, DIRECT);
+
+rollPID.SetOutputLimits(-1000, 1000);
+pitchPID.SetOutputLimits(-1000, 1000);
 /**************************************************************************/
 /*!
     @brief  Initialises all the sensors used by this example
@@ -154,11 +157,6 @@ void loop(void)
 
   rollPID.Compute();
   pitchPID.Compute();
-  
-  if(rollVal > 1000) rollVal = 1000;
-  if(rollVal < -1000) rollVal = -1000;
-  if(pitchVal > 1000) pitchVal = 1000;
-  if(pitchVal < -1000) pitchVal = -1000;
 
  rollVal = map(rollVal, -1000, 1000, 0, 180);
  pitchVal = map(pitchVal, -1000, 1000, 180, 0);
