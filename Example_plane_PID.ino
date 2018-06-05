@@ -24,16 +24,16 @@ int Servo2Pos = 0;
 float seaLevelPressure = SENSORS_PRESSURE_SEALEVELHPA;
 
 // Set PID gain for both axis
-double rollP = 10;
+double rollP = 15;
 double rollI = 0;
 double rollD = 0;
 
-double pitchP = 10;
+double pitchP = 15;
 double pitchI = 0;
 double pitchD = 0;
 
 // Set the set point
-double rollPoint = 5;
+double rollPoint = 0;
 double pitchPoint = 0;
 
 double pitchVal;
@@ -43,8 +43,8 @@ double rollAcc;
 double pitchAcc;
 
 //Specify the links and initial tuning parameters
-PID rollPID(&rollAcc, &rollVal, &rollPoint,rollP,rollI,rollD, DIRECT);
-PID pitchPID(&pitchAcc, &pitchVal, &pitchPoint,pitchP,pitchI,pitchD, DIRECT);
+PID rollPID(&rollAcc, &rollVal, &rollPoint, rollP, rollI, rollD, DIRECT);
+PID pitchPID(&pitchAcc, &pitchVal, &pitchPoint, pitchP, pitchI, pitchD, DIRECT);
 
 /**************************************************************************/
 /*!
@@ -85,13 +85,15 @@ void setup(void)
   Serial.begin(115200);
   Serial.println(F("your mom gay lol")); Serial.println("");
 
-  rollPID.SetOutputLimits(-1000, 1000);
-  pitchPID.SetOutputLimits(-1000, 1000);
-
   //turn the PID on
   rollPID.SetMode(AUTOMATIC);
   pitchPID.SetMode(AUTOMATIC);
-  
+
+  pitchPID.SetOutputLimits(-1000, 1000);
+  rollPID.SetOutputLimits(-1000, 1000);
+
+  pitchPID.SetSampleTime(10);
+  rollPID.SetSampleTime(10);
   /* Initialise the sensors */
   initSensors();
 }
@@ -155,11 +157,12 @@ void loop(void)
   
   Serial.println(F(""));
 
-  rollPID.Compute();
-  pitchPID.Compute();
+    rollPID.Compute();
+    pitchPID.Compute();
 
- rollVal = map(rollVal, -1000, 1000, 0, 180);
- pitchVal = map(pitchVal, -1000, 1000, 180, 0);
- Servo1.write(rollVal);
- Servo2.write(pitchVal);
+    rollVal = map(rollVal, -1000, 1000, 180, 0);
+    pitchVal = map(pitchVal, -1000, 1000, 0, 180);
+
+    Servo1.write(rollVal);
+    Servo2.write(pitchVal);
 }
