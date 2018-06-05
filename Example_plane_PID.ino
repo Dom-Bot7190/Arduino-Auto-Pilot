@@ -46,8 +46,6 @@ double pitchAcc;
 PID rollPID(&rollAcc, &rollVal, &rollPoint,rollP,rollI,rollD, DIRECT);
 PID pitchPID(&pitchAcc, &pitchVal, &pitchPoint,pitchP,pitchI,pitchD, DIRECT);
 
-rollPID.SetOutputLimits(-1000, 1000);
-pitchPID.SetOutputLimits(-1000, 1000);
 /**************************************************************************/
 /*!
     @brief  Initialises all the sensors used by this example
@@ -77,7 +75,6 @@ void initSensors()
 
 /**************************************************************************/
 /*!
-
 */
 /**************************************************************************/
 void setup(void)
@@ -87,6 +84,9 @@ void setup(void)
   delay(50);
   Serial.begin(115200);
   Serial.println(F("your mom gay lol")); Serial.println("");
+
+  rollPID.SetOutputLimits(-1000, 1000);
+  pitchPID.SetOutputLimits(-1000, 1000);
 
   //turn the PID on
   rollPID.SetMode(AUTOMATIC);
