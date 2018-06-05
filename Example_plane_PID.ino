@@ -94,7 +94,7 @@ void setup(void)
   Servo2.attach(10);
   delay(50);
   Serial.begin(115200);
-  Serial.println(F("Adafruit 10 DOF Pitch/Roll/Heading Example")); Serial.println("");
+  Serial.println(F("Running Arduino Autopilot")); Serial.println("");
 
   GPS.begin(9600);
 
