@@ -14,7 +14,9 @@ SoftwareSerial mySerial(3, 2);
 
 Adafruit_GPS GPS(&mySerial);
 
-
+#define GPSECHO  false
+boolean usingInterrupt = false;
+void useInterrupt(boolean);
 
 /* Assign a unique ID to the sensors */
 Adafruit_10DOF                dof   = Adafruit_10DOF();
@@ -54,8 +56,6 @@ double pitchAcc;
 PID rollPID(&rollAcc, &rollVal, &rollPoint,rollP,rollI,rollD, DIRECT);
 PID pitchPID(&pitchAcc, &pitchVal, &pitchPoint,pitchP,pitchI,pitchD, DIRECT);
 
-rollPID.SetOutputLimits(-1000, 1000);
-pitchPID.SetOutputLimits(-1000, 1000);
 /**************************************************************************/
 /*!
     @brief  Initialises all the sensors used by this example
@@ -101,6 +101,9 @@ void setup(void)
   //turn the PID on
   rollPID.SetMode(AUTOMATIC);
   pitchPID.SetMode(AUTOMATIC);
+
+  rollPID.SetOutputLimits(-1000, 1000);
+  pitchPID.SetOutputLimits(-1000, 1000);
   
   /* Initialise the sensors */
   initSensors();
@@ -223,9 +226,9 @@ void loop(void)
   }
   
   Serial.println(F(""));
-
-  rollPID.Compute();
-  pitchPID.Compute();
+}
+ rollPID.Compute();
+ pitchPID.Compute();
 
  rollVal = map(rollVal, -1000, 1000, 0, 180);
  pitchVal = map(pitchVal, -1000, 1000, 180, 0);
