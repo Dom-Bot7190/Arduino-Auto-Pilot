@@ -34,11 +34,11 @@ int Servo2Pos = 0;
 float seaLevelPressure = SENSORS_PRESSURE_SEALEVELHPA;
 
 // Set PID gain for both axis
-double rollP = 10;
+double rollP = 12;
 double rollI = 0;
 double rollD = 0;
 
-double pitchP = 10;
+double pitchP = 14;
 double pitchI = 0;
 double pitchD = 0;
 
@@ -94,7 +94,7 @@ void setup(void)
   Servo2.attach(10);
   delay(50);
   Serial.begin(115200);
-  Serial.println(F("Running Arduino Autopilot")); Serial.println("");
+  Serial.println(F("your mom gay lol")); Serial.println("");
 
   GPS.begin(9600);
 
@@ -146,35 +146,8 @@ void useInterrupt(boolean v) {
   }
 }
 uint32_t timer = millis();
-void loop(void)
+void loop()
 {
-   // if a sentence is received, we can check the checksum, parse it...
-  if (GPS.newNMEAreceived()) {
-    // a tricky thing here is if we print the NMEA sentence, or data
-    // we end up not listening and catching other sentences! 
-    // so be very wary if using OUTPUT_ALLDATA and trytng to print out data
-    //Serial.println(GPS.lastNMEA());   // this also sets the newNMEAreceived() flag to false
-  
-    if (!GPS.parse(GPS.lastNMEA()))   // this also sets the newNMEAreceived() flag to false
-      return;  // we can fail to parse a sentence in which case we should just wait for another
-  }
-
-  // if millis() or timer wraps around, we'll just reset it
-  if (timer > millis())  timer = millis();
-
-  // approximately every 2 seconds or so, print out the current stats
-  if (millis() - timer > 2000) { 
-    timer = millis(); // reset the timer
-    if (GPS.fix) {
-      Serial.print("Location: ");
-      Serial.print(GPS.latitude, 4); Serial.print(GPS.lat);
-      Serial.print(", "); 
-      Serial.print(GPS.longitude, 4); Serial.println(GPS.lon);
-      Serial.print("Location (in degrees, works with Google Maps): ");
-      Serial.print(GPS.latitudeDegrees, 4);
-      Serial.print(", "); 
-      Serial.println(GPS.longitudeDegrees, 4);
-    }
   sensors_event_t accel_event;
   sensors_event_t mag_event;
   sensors_event_t bmp_event;
@@ -226,7 +199,6 @@ void loop(void)
   }
   
   Serial.println(F(""));
-}
  rollPID.Compute();
  pitchPID.Compute();
 
@@ -234,4 +206,33 @@ void loop(void)
  pitchVal = map(pitchVal, -1000, 1000, 180, 0);
  Servo1.write(rollVal);
  Servo2.write(pitchVal);
+ 
+   // if a sentence is received, we can check the checksum, parse it...
+  if (GPS.newNMEAreceived()) {
+    // a tricky thing here is if we print the NMEA sentence, or data
+    // we end up not listening and catching other sentences! 
+    // so be very wary if using OUTPUT_ALLDATA and trytng to print out data
+    //Serial.println(GPS.lastNMEA());   // this also sets the newNMEAreceived() flag to false
+  
+    if (!GPS.parse(GPS.lastNMEA()))   // this also sets the newNMEAreceived() flag to false
+      return;  // we can fail to parse a sentence in which case we should just wait for another
+  }
+
+  // if millis() or timer wraps around, we'll just reset it
+  if (timer > millis())  timer = millis();
+
+  // approximately every 2 seconds or so, print out the current stats
+  if (millis() - timer > 2000) { 
+    timer = millis(); // reset the timer
+    if (GPS.fix) {
+      Serial.print("Location: ");
+      Serial.print(GPS.latitude, 4); Serial.print(GPS.lat);
+      Serial.print(", "); 
+      Serial.print(GPS.longitude, 4); Serial.println(GPS.lon);
+      Serial.print("Location (in degrees, works with Google Maps): ");
+      Serial.print(GPS.latitudeDegrees, 4);
+      Serial.print(", "); 
+      Serial.println(GPS.longitudeDegrees, 4);
+    }
+}
 }
