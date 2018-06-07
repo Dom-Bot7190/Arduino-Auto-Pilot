@@ -1,3 +1,4 @@
+#include <Adafruit_GPS.h>
 #include <PID_v1.h>
 #include <Wire.h>
 #include <Adafruit_Sensor.h>
@@ -5,8 +6,17 @@
 #include <Adafruit_BMP085_U.h>
 #include <Adafruit_L3GD20_U.h>
 #include <Adafruit_10DOF.h>
+#include <Adafruit_GPS.h>
 #include <Servo.h>
 #include <SoftwareSerial.h>
+
+SoftwareSerial mySerial(3, 2);
+
+Adafruit_GPS GPS(&mySerial);
+
+#define GPSECHO  false
+boolean usingInterrupt = false;
+void useInterrupt(boolean);
 
 /* Assign a unique ID to the sensors */
 Adafruit_10DOF                dof   = Adafruit_10DOF();
@@ -24,11 +34,12 @@ int Servo2Pos = 0;
 float seaLevelPressure = SENSORS_PRESSURE_SEALEVELHPA;
 
 // Set PID gain for both axis
-double rollP = 15;
+
+double rollP = 12;
 double rollI = 0;
 double rollD = 0;
 
-double pitchP = 15;
+double pitchP = 14;
 double pitchI = 0;
 double pitchD = 0;
 
@@ -85,6 +96,8 @@ void setup(void)
   Serial.begin(115200);
   Serial.println(F("your mom gay lol")); Serial.println("");
 
+  GPS.begin(9600);
+
   //turn the PID on
   rollPID.SetMode(AUTOMATIC);
   pitchPID.SetMode(AUTOMATIC);
@@ -94,8 +107,15 @@ void setup(void)
 
   pitchPID.SetSampleTime(10);
   rollPID.SetSampleTime(10);
+
   /* Initialise the sensors */
   initSensors();
+
+  GPS.sendCommand(PMTK_SET_NMEA_OUTPUT_RMCONLY);
+  GPS.sendCommand(PMTK_SET_NMEA_UPDATE_1HZ);
+  useInterrupt(true);
+  delay(1000);
+  mySerial.println(PMTK_Q_RELEASE);
 }
 
 /**************************************************************************/
@@ -103,7 +123,33 @@ void setup(void)
     @brief  Constantly check the roll/pitch/heading/altitude/temperature
 */
 /**************************************************************************/
-void loop(void)
+
+// Interrupt is called once a millisecond, looks for any new GPS data, and stores it
+SIGNAL(TIMER0_COMPA_vect) {
+  char c = GPS.read();
+  // if you want to debug, this is a good time to do it!
+#ifdef UDR0
+  if (GPSECHO)
+    if (c) UDR0 = c;  
+    // writing direct to UDR0 is much much faster than Serial.print 
+    // but only one character can be written at a time. 
+#endif
+}
+void useInterrupt(boolean v) {
+  if (v) {
+    // Timer0 is already used for millis() - we'll just interrupt somewhere
+    // in the middle and call the "Compare A" function above
+    OCR0A = 0xAF;
+    TIMSK0 |= _BV(OCIE0A);
+    usingInterrupt = true;
+  } else {
+    // do not call the interrupt function COMPA anymore
+    TIMSK0 &= ~_BV(OCIE0A);
+    usingInterrupt = false;
+  }
+}
+uint32_t timer = millis();
+void loop()
 {
   sensors_event_t accel_event;
   sensors_event_t mag_event;
@@ -157,12 +203,40 @@ void loop(void)
   
   Serial.println(F(""));
 
-    rollPID.Compute();
-    pitchPID.Compute();
+ rollPID.Compute();
+ pitchPID.Compute();
 
-    rollVal = map(rollVal, -1000, 1000, 180, 0);
-    pitchVal = map(pitchVal, -1000, 1000, 0, 180);
+ rollVal = map(rollVal, -1000, 1000, 0, 180);
+ pitchVal = map(pitchVal, -1000, 1000, 180, 0);
+ Servo1.write(rollVal);
+ Servo2.write(pitchVal);
+ 
+   // if a sentence is received, we can check the checksum, parse it...
+  if (GPS.newNMEAreceived()) {
+    // a tricky thing here is if we print the NMEA sentence, or data
+    // we end up not listening and catching other sentences! 
+    // so be very wary if using OUTPUT_ALLDATA and trytng to print out data
+    //Serial.println(GPS.lastNMEA());   // this also sets the newNMEAreceived() flag to false
+  
+    if (!GPS.parse(GPS.lastNMEA()))   // this also sets the newNMEAreceived() flag to false
+      return;  // we can fail to parse a sentence in which case we should just wait for another
+  }
 
-    Servo1.write(rollVal);
-    Servo2.write(pitchVal);
+  // if millis() or timer wraps around, we'll just reset it
+  if (timer > millis())  timer = millis();
+
+  // approximately every 2 seconds or so, print out the current stats
+  if (millis() - timer > 2000) { 
+    timer = millis(); // reset the timer
+    if (GPS.fix) {
+      Serial.print("Location: ");
+      Serial.print(GPS.latitude, 4); Serial.print(GPS.lat);
+      Serial.print(", "); 
+      Serial.print(GPS.longitude, 4); Serial.println(GPS.lon);
+      Serial.print("Location (in degrees, works with Google Maps): ");
+      Serial.print(GPS.latitudeDegrees, 4);
+      Serial.print(", "); 
+      Serial.println(GPS.longitudeDegrees, 4);
+    }
+}
 }
