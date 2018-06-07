@@ -238,5 +238,5 @@ void loop()
       Serial.print(", "); 
       Serial.println(GPS.longitudeDegrees, 4);
     }
-}
+  }
 }
