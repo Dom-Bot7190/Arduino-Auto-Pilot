@@ -6,7 +6,6 @@
 #include <Adafruit_BMP085_U.h>
 #include <Adafruit_L3GD20_U.h>
 #include <Adafruit_10DOF.h>
-#include <Adafruit_GPS.h>
 #include <Servo.h>
 #include <SoftwareSerial.h>
 #include <math.h>
@@ -58,12 +57,33 @@ double rollVal;
 
 double rollAcc;
 double pitchAcc;
+
+// Set waypoints
+double firstLat = 0;
+double firstLong = 0;
+
+double secondLat = 0;
+double secondLong = 0;
+
+double thirdLat = 0;
+double thirdLong = 0;
+
+double targetLat = firstLat;
+double targetLong = firstLong;
+
+// Bearing variables
+double x;
+double y;
+double bearing;
+double diffLat;
+double currentLat;
+double currentLong;
 double currentHeading;
 
 //Specify the links and initial tuning parameters
 PID rollPID(&rollAcc, &rollVal, &rollPoint, rollP, rollI, rollD, DIRECT);
 PID pitchPID(&pitchAcc, &pitchVal, &pitchPoint, pitchP, pitchI, pitchD, DIRECT);
-PID turnPID(&currentHeading, &rollPoint, &wayPointHeading, turnP, turnI, turnD, DIRECT);
+PID turnPID(&currentHeading, &rollPoint, &bearing, turnP, turnI, turnD, DIRECT);
 
 /**************************************************************************/
 /*!
@@ -112,9 +132,11 @@ void setup(void)
 
   pitchPID.SetOutputLimits(-1000, 1000);
   rollPID.SetOutputLimits(-1000, 1000);
+  turnPID.SetOutputLimits(-180, 180);
 
   pitchPID.SetSampleTime(10);
   rollPID.SetSampleTime(10);
+  turnPID.SetSampleTime(10);
 
   /* Initialise the sensors */
   initSensors();
@@ -158,15 +180,36 @@ void useInterrupt(boolean v) {
 }
 void loop()
 {
+  sensors_event_t accel_event;
+  sensors_event_t mag_event;
+  sensors_event_t bmp_event;
+  sensors_vec_t   orientation;
+  
   // if a sentence is received, we can check the checksum, parse it...
   if (GPS.newNMEAreceived()) {
     if (!GPS.parse(GPS.lastNMEA()))   // this also sets the newNMEAreceived() flag to false
       return;  // we can fail to parse a sentence in which case we should just wait for another
   }
-  sensors_event_t accel_event;
-  sensors_event_t mag_event;
-  sensors_event_t bmp_event;
-  sensors_vec_t   orientation;
+  currentLat = GPS.latitudeDegrees;
+  currentLong = GPS.longitudeDegrees;
+  
+  diffLat = targetLat - currentLat;
+  x = cos(targetLong) * diffLat;
+  y = cos(currentLong) * sin(targetLong) - sin(currentLong) * cos(targetLong) * cos(diffLat);
+  bearing = atan2(x, y);
+
+  /* Calculate the heading using the magnetometer */
+  mag.getEvent(&mag_event);
+  if (dof.magGetOrientation(SENSOR_AXIS_Z, &mag_event, &orientation))
+  {
+    /* 'orientation' should have valid .heading data now */
+    Serial.print(F("Heading: "));
+    Serial.print(orientation.heading);
+    Serial.print(F("; "));
+    currentHeading = orientation.heading;
+  }
+  turnPID.Compute();
+  rollPoint = map(rollPoint, -180, 180, -25, 25);
 
   /* Calculate pitch and roll from the raw accelerometer data */
   accel.getEvent(&accel_event);
@@ -182,16 +225,6 @@ void loop()
 
     rollAcc = orientation.roll;
     pitchAcc = orientation.pitch;
-  }
-  
-  /* Calculate the heading using the magnetometer */
-  mag.getEvent(&mag_event);
-  if (dof.magGetOrientation(SENSOR_AXIS_Z, &mag_event, &orientation))
-  {
-    /* 'orientation' should have valid .heading data now */
-    Serial.print(F("Heading: "));
-    Serial.print(orientation.heading);
-    Serial.print(F("; "));
   }
 
   /* Calculate the altitude using the barometric pressure sensor */
