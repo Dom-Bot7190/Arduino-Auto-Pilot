@@ -21,20 +21,20 @@ double turnI = 0;
 double turnD = 0;
 
 // Set waypoints
-double firstLat = 49.2775;
-double firstLong = -123.0619;
+long firstLat = 4916.3989;
+long firstLong = 1233.2992;
 
-double targetLat = firstLat;
-double targetLong = firstLong;
+long targetLat = firstLat;
+long targetLong = firstLong;
 
 // Bearing variables
-double x;
-double y;
-double bearing;
-double diffLat;
-double currentLat;
-double currentLong;
-double currentHeading;
+long x;
+long y;
+long bearing;
+long diffLat;
+long currentLat;
+long currentLong;
+long currentHeading;
 
 //PID turnPID(&currentHeading, &rollPoint, &bearing, turnP, turnI, turnD, DIRECT);
 
@@ -156,12 +156,12 @@ void loop()                     // run over and over again
     if (!GPS.parse(GPS.lastNMEA()))   // this also sets the newNMEAreceived() flag to false
       return;  // we can fail to parse a sentence in which case we should just wait for another
   }
-  currentLat = GPS.latitudeDegrees;
-  currentLong = GPS.longitudeDegrees;
+  currentLat = GPS.latitude;
+  currentLong = GPS.longitude;
   
   diffLat = targetLat - currentLat;
-  x = cos(targetLong) * diffLat;
-  y = cos(currentLong) * sin(targetLong) - sin(currentLong) * cos(targetLong) * cos(diffLat);
+  x = cos(targetLong)*sin(diffLat);
+  y = cos(currentLong)*sin(targetLong)-sin(currentLong)*cos(targetLong)*cos(diffLat);
   bearing = atan2(x, y);
 
   /* Calculate the heading using the magnetometer */
@@ -172,6 +172,6 @@ void loop()                     // run over and over again
   }
   rollPoint = currentHeading - bearing;
   //turnPID.Compute();
-  Serial.print(rollPoint);
+  Serial.print(bearing);
   Serial.print(" ");
 }
