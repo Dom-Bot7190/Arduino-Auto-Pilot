@@ -16,13 +16,13 @@ Adafruit_LSM303_Mag_Unified   mag   = Adafruit_LSM303_Mag_Unified(30302);
 
 double wayPointHeading;
 double rollPoint;
-double turnP = 0;
+double turnP = 1;
 double turnI = 0;
 double turnD = 0;
 
 // Set waypoints
-double firstLat = 0;
-double firstLong = 0;
+double firstLat = 49.2775;
+double firstLong = -123.0619;
 
 double targetLat = firstLat;
 double targetLong = firstLong;
@@ -36,7 +36,7 @@ double currentLat;
 double currentLong;
 double currentHeading;
 
-PID turnPID(&currentHeading, &rollPoint, &bearing, turnP, turnI, turnD, DIRECT);
+//PID turnPID(&currentHeading, &rollPoint, &bearing, turnP, turnI, turnD, DIRECT);
 
 /**************************************************************************/
 /*!
@@ -73,7 +73,7 @@ void setup()
   GPS.begin(9600);
 
   //turn the PID on
-  turnPID.SetSampleTime(10);
+ // turnPID.SetSampleTime(10);
 
   /* Initialise the sensors */
   initSensors();
@@ -170,6 +170,8 @@ void loop()                     // run over and over again
   {
     currentHeading = orientation.heading;
   }
-  turnPID.Compute();
+  rollPoint = currentHeading - bearing;
+  //turnPID.Compute();
   Serial.print(rollPoint);
+  Serial.print(" ");
 }
