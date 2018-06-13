@@ -21,20 +21,20 @@ double turnI = 0;
 double turnD = 0;
 
 // Set waypoints
-long firstLat = 4916.3989;
-long firstLong = 1233.2992;
+double firstLat = 4916.3989;
+double firstLong = 1233.2992;
 
-long targetLat = firstLat;
-long targetLong = firstLong;
+double targetLat = firstLat;
+double targetLong = firstLong;
 
 // Bearing variables
-long x;
-long y;
-long bearing;
-long diffLat;
-long currentLat;
-long currentLong;
-long currentHeading;
+double x;
+double y;
+double bearing;
+double diffLat;
+double currentLat;
+double currentLong;
+double currentHeading;
 
 //PID turnPID(&currentHeading, &rollPoint, &bearing, turnP, turnI, turnD, DIRECT);
 
@@ -163,6 +163,7 @@ void loop()                     // run over and over again
   x = cos(targetLong)*sin(diffLat);
   y = cos(currentLong)*sin(targetLong)-sin(currentLong)*cos(targetLong)*cos(diffLat);
   bearing = atan2(x, y);
+  bearing *= 57.295779;
 
   /* Calculate the heading using the magnetometer */
   mag.getEvent(&mag_event);
