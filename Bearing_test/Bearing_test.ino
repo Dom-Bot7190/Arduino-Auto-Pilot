@@ -22,7 +22,7 @@ double turnD = 0;
 
 // Set waypoints
 double firstLat = 4916.3989;
-double firstLong = 1233.2992;
+double firstLong = -1233.2992;
 
 double targetLat = firstLat;
 double targetLong = firstLong;
@@ -158,12 +158,18 @@ void loop()                     // run over and over again
   }
   currentLat = GPS.latitude;
   currentLong = GPS.longitude;
+  currentLong *= -1.0;
   
   diffLat = targetLat - currentLat;
   x = cos(targetLong)*sin(diffLat);
   y = cos(currentLong)*sin(targetLong)-sin(currentLong)*cos(targetLong)*cos(diffLat);
   bearing = atan2(x, y);
   bearing *= 57.295779;
+  bearing += 90;
+  if (bearing > 360)
+  { 
+    bearing -= 360;
+  }
 
   /* Calculate the heading using the magnetometer */
   mag.getEvent(&mag_event);

@@ -251,8 +251,8 @@ void loop()
  rollPID.Compute();
  pitchPID.Compute();
 
- rollVal = map(rollVal, -1000, 1000, 0, 180);
- pitchVal = map(pitchVal, -1000, 1000, 180, 0);
+ rollVal = map(rollVal, -1000, 1000, 180, 0);
+ pitchVal = map(pitchVal, -1000, 1000, 0, 180);
  Servo1.write(rollVal);
  Servo2.write(pitchVal);
 }
